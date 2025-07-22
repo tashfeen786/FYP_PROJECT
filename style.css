@@ -1,0 +1,113 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #121212;
+    color: #eee;
+}
+
+.sidebar {
+    width: 250px;
+    background-color: #1f1f1f;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    height: 100vh;
+}
+
+.sidebar h2 {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.sidebar button {
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background-color: #333;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.sidebar button:hover {
+    background-color: #555;
+}
+
+.counters p {
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.downloads button {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.main {
+    flex-grow: 1;
+    padding: 20px;
+    background-color: #181818;
+    overflow-y: auto;
+}
+
+.video-section {
+    margin-bottom: 30px;
+}
+
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    aspect-ratio: 16 / 9;
+    background-color: black;
+    border: 2px solid #333;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#video-feed,
+#overlay {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.logs table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.logs th,
+.logs td {
+    padding: 10px;
+    border: 1px solid #333;
+    text-align: center;
+}
+
+.logs th {
+    background-color: #292929;
+}
+
+.logs button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background-color: #444;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.logs button:hover {
+    background-color: #666;
+}

@@ -1,72 +1,55 @@
 <!DOCTYPE html>
-<html lang="en" class="bg-gray-900 text-white">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Helmet & Number Plate Detection</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-</head>
-<body class="font-sans antialiased">
-  <div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold mb-8 text-center">Helmet & Number Plate Detection</h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
-        <h2 class="text-xl font-semibold mb-4">Live Detection</h2>
-        <div class="relative">
-          <div class="w-full h-64 bg-gray-700 rounded-lg mb-4 flex items-center justify-center">
-            <span class="text-gray-400">Camera Feed</span>
-          </div>
-          <div class="absolute top-0 left-0 w-full h-64">
-            <!-- Simulated bounding boxes -->
-          </div>
-        </div>
-        <div class="flex justify-between text-sm text-gray-400">
-          <span>Helmet: ✅</span>
-          <span>Number Plate: 📸</span>
-        </div>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartHelmet AI | Akhonzada Tech</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2>SmartHelmet AI</h2>
+      <button id="theme-toggle">🌗 Theme</button>
+      <button id="start-btn">▶️ Start Detection</button>
+      <button id="stop-btn">⏹️ Stop Detection</button>
+      <div class="counters">
+        <p>Total: <span id="total">0</span></p>
+        <p>Helmeted: <span id="helmeted">0</span></p>
+        <p>No Helmet: <span id="no-helmet">0</span></p>
       </div>
-
-      <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
-        <h2 class="text-xl font-semibold mb-4">Statistics</h2>
-        <div class="grid grid-cols-2 gap-4">
-          <div class="bg-gray-700 p-4 rounded-lg text-center">
-            <p class="text-lg font-bold" id="helmetedCount">0</p>
-            <p class="text-sm text-gray-400">Helmeted</p>
-          </div>
-          <div class="bg-gray-700 p-4 rounded-lg text-center">
-            <p class="text-lg font-bold" id="unhelmetedCount">0</p>
-            <p class="text-sm text-gray-400">Unhelmeted</p>
-          </div>
-          <div class="bg-gray-700 p-4 rounded-lg text-center col-span-2">
-            <p class="text-lg font-bold" id="totalCount">0</p>
-            <p class="text-sm text-gray-400">Total Bikers</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
-        <h2 class="text-xl font-semibold mb-4">Recent Detections</h2>
-        <ul id="detectionLog" class="space-y-2 text-sm text-gray-300 h-64 overflow-y-auto">
-          <!-- Detection log entries will appear here -->
-        </ul>
+      <div class="downloads">
+        <button id="download-helmet">⬇️ Helmeted</button>
+        <button id="download-nohelmet">⬇️ No Helmet</button>
       </div>
     </div>
 
-    <div class="mt-8 bg-gray-800 p-4 rounded-lg shadow-lg">
-      <h2 class="text-xl font-semibold mb-4">Detected Number Plates</h2>
-      <div class="flex flex-wrap gap-2" id="numberPlates">
-        <!-- Number plates will appear here -->
+    <div class="main">
+      <div class="video-section">
+        <h3>Live Camera Feed</h3>
+        <div class="video-wrapper">
+          <video id="video-feed" autoplay muted></video>
+          <canvas id="overlay"></canvas>
+        </div>
+      </div>
+
+      <div class="logs">
+        <h3>Detection Logs</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Number Plate</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="log-body">
+            <!-- Logs will be added here -->
+          </tbody>
+        </table>
+        <button id="export">📝 Export Logs</button>
       </div>
     </div>
 
-    <div class="mt-8 text-center">
-      <button onclick="exportData()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">
-        Export Detection Data
-      </button>
-    </div>
-  </div>
-
-  <script src="script.js"></script>
-</body>
+    <script src="script.js"></script>
+  </body>
 </html>
