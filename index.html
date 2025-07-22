@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Helmet & Number Plate Detection System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      .notification {
+        animation: slideIn 0.5s forwards, fadeOut 0.5s 3s forwards;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+        }
+        to {
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes fadeOut {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+
+      .log-entry {
+        transition: all 0.3s ease;
+      }
+
+      .log-entry:hover {
+        transform: translateX(5px);
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+
+      .camera-feed {
+        position: relative;
+        overflow: hidden;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+
+      .detection-box {
+        position: absolute;
+        border: 2px solid;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 12px;
+        color: white;
+        text-shadow: 1px 1px 1px black;
+      }
+
+      .helmet-detected {
+        border-color: #10b981;
+        background-color: rgba(16, 185, 129, 0.2);
+      }
+
+      .no-helmet {
+        border-color: #ef4444;
+        background-color: rgba(239, 68, 68, 0.2);
+      }
+    </style>
+  </head>
+  <body class="bg-gray-900 text-gray-100 min-h-screen">
+    <!-- Header -->
+    <header
+      class="bg-gradient-to-r from-blue-900 via-gray-800 to-blue-900 shadow-xl relative overflow-hidden"
+    >
+      <div
+        class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=')] opacity-10"
+      ></div>
+      <div
+        class="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-transparent to-blue-500/20 animate-pulse"
+      ></div>
+      <div class="container mx-auto px-6 py-5 relative z-10">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+          <div class="flex items-center mb-4 md:mb-0 group">
+            <div class="relative mr-3">
+              <div class="relative">
+                <i
+                  class="fas fa-helmet-safety text-5xl text-blue-400 transition-all duration-500 group-hover:text-blue-300 transform group-hover:rotate-12 group-hover:scale-110"
+                ></i>
+                <div
+                  class="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full w-6 h-6 flex items-center justify-center shadow-lg"
+                >
+                  <i class="fas fa-shield-alt text-xs text-blue-800"></i>
+                </div>
+              </div>
+              <div
+                class="absolute -inset-4 bg-blue-500/10 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              ></div>
+            </div>
+            <h1
+              class="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-400 tracking-tight"
+            >
+              Helmet Detection <span class="text-yellow-400">for Bikers</span>
+            </h1>
+          </div>
+          <div class="flex items-center space-x-4">
+            <button
+              id="toggleMode"
+              class="p-2 rounded-full bg-gray-700/70 hover:bg-gray-600/80 backdrop-blur-sm transition-all transform hover:scale-110 shadow-lg"
+            >
+              <i
+                class="fas fa-moon text-blue-300 hover:text-blue-200 transition"
+              ></i>
+            </button>
+            <button
+              id="fullscreenBtn"
+              class="p-2 rounded-full bg-gray-700/70 hover:bg-gray-600/80 backdrop-blur-sm transition-all transform hover:scale-110 shadow-lg"
+            >
+              <i
+                class="fas fa-expand text-blue-300 hover:text-blue-200 transition"
+              ></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        class="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-90 animate-pulse"
+      ></div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Column - Camera Feed and Controls -->
+        <div class="lg:col-span-2 space-y-6">
+          <!-- Camera Feed -->
+          <div class="camera-feed bg-black aspect-video relative">
+            <video
+              id="videoFeed"
+              class="w-full h-full object-cover"
+              autoplay
+              muted
+            ></video>
+            <canvas
+              id="videoCanvas"
+              class="absolute top-0 left-0 w-full h-full"
+            ></canvas>
+            <div id="detectionBoxes"></div>
+            <div
+              id="noCameraMessage"
+              class="absolute inset-0 flex items-center justify-center bg-gray-800 hidden"
+            >
+              <div class="text-center p-6">
+                <i class="fas fa-video-slash text-5xl text-gray-500 mb-4"></i>
+                <p class="text-xl">Camera feed not available</p>
+                <p class="text-gray-400 mt-2">Using simulated detection data</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <div
+            class="flex flex-wrap gap-4 justify-between items-center bg-gray-800 p-4 rounded-lg"
+          >
+            <div class="flex items-center space-x-4">
+              <button
+                id="startStopBtn"
+                class="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium flex items-center transition"
+              >
+                <i class="fas fa-play mr-2"></i> Start Detection
+              </button>
+              <button
+                id="simulateBtn"
+                class="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium flex items-center transition"
+              >
+                <i class="fas fa-random mr-2"></i> Simulate Data
+              </button>
+            </div>
+            <div class="flex items-center space-x-4">
+              <div class="flex items-center">
+                <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                <span>With Helmet</span>
+              </div>
+              <div class="flex items-center">
+                <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                <span>Without Helmet</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detection Logs -->
+          <div class="bg-gray-800 rounded-lg overflow-hidden">
+            <div
+              class="bg-gray-700 px-4 py-3 flex justify-between items-center"
+            >
+              <h2 class="font-semibold flex items-center">
+                <i class="fas fa-clipboard-list mr-2"></i> Detection Logs
+              </h2>
+              <button
+                id="clearLogsBtn"
+                class="text-sm text-gray-300 hover:text-white"
+              >
+                <i class="fas fa-trash-alt mr-1"></i> Clear
+              </button>
+            </div>
+            <div id="detectionLogs" class="h-64 overflow-y-auto p-2 space-y-2">
+              <div class="text-center text-gray-500 py-8">
+                <i class="fas fa-info-circle text-2xl mb-2"></i>
+                <p>No detection logs yet. Start detection to see results.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column - Stats and Notifications -->
+        <div class="space-y-6">
+          <!-- Stats Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+            <div class="bg-gray-800 rounded-lg p-4 shadow">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-gray-400">Total Bikers Detected</p>
+                  <h3 id="totalBikers" class="text-3xl font-bold">0</h3>
+                </div>
+                <div class="bg-blue-600 p-3 rounded-full">
+                  <i class="fas fa-motorcycle text-xl"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg p-4 shadow">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-gray-400">With Helmet</p>
+                  <h3 id="withHelmet" class="text-3xl font-bold text-green-500">
+                    0
+                  </h3>
+                </div>
+                <div class="bg-green-600 p-3 rounded-full">
+                  <i class="fas fa-helmet-safety text-xl"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg p-4 shadow">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-gray-400">Without Helmet</p>
+                  <h3
+                    id="withoutHelmet"
+                    class="text-3xl font-bold text-red-500"
+                  >
+                    0
+                  </h3>
+                </div>
+                <div class="bg-red-600 p-3 rounded-full">
+                  <i class="fas fa-exclamation-triangle text-xl"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg p-4 shadow">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-gray-400">Number Plates Captured</p>
+                  <h3
+                    id="platesCaptured"
+                    class="text-3xl font-bold text-yellow-500"
+                  >
+                    0
+                  </h3>
+                </div>
+                <div class="bg-yellow-600 p-3 rounded-full">
+                  <i class="fas fa-car-alt text-xl"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg p-4 shadow">
+              <button
+                id="exportBtn"
+                class="w-full px-4 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-medium flex items-center justify-center transition"
+              >
+                <i class="fas fa-file-csv mr-2"></i> Export Data as CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Notifications -->
+          <div class="bg-gray-800 rounded-lg overflow-hidden">
+            <div class="bg-gray-700 px-4 py-3">
+              <h2 class="font-semibold flex items-center">
+                <i class="fas fa-bell mr-2"></i> Alerts
+              </h2>
+            </div>
+            <div
+              id="notifications"
+              class="min-h-40 max-h-64 overflow-y-auto p-2 space-y-2"
+            >
+              <div class="text-center text-gray-500 py-8">
+                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                <p>No alerts yet. Start detection to see notifications.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Plates -->
+          <div class="bg-gray-800 rounded-lg overflow-hidden">
+            <div class="bg-gray-700 px-4 py-3">
+              <h2 class="font-semibold flex items-center">
+                <i class="fas fa-list-ol mr-2"></i> Recent Number Plates
+              </h2>
+            </div>
+            <div
+              id="recentPlates"
+              class="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3"
+            >
+              <div class="text-center text-gray-500 py-4">
+                <i class="fas fa-car text-xl mb-2"></i>
+                <p class="text-sm">No plates captured yet</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Notification Toast -->
+    <div
+      id="notificationToast"
+      class="fixed bottom-4 right-4 w-80 bg-red-600 text-white p-4 rounded-lg shadow-xl z-50 hidden notification"
+    >
+      <div class="flex items-start">
+        <div class="flex-shrink-0 pt-0.5">
+          <i class="fas fa-exclamation-triangle text-xl"></i>
+        </div>
+        <div class="ml-3 w-0 flex-1">
+          <p class="font-medium">No Helmet Detected</p>
+          <p id="toastPlateNumber" class="mt-1 text-sm">
+            Number Plate Captured
+          </p>
+        </div>
+        <button
+          class="ml-4 flex-shrink-0 inline-flex text-white hover:text-gray-200 focus:outline-none"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // DOM Elements
+      const videoFeed = document.getElementById("videoFeed");
+      const videoCanvas = document.getElementById("videoCanvas");
+      const ctx = videoCanvas.getContext("2d");
+      const detectionBoxes = document.getElementById("detectionBoxes");
+      const noCameraMessage = document.getElementById("noCameraMessage");
+      const startStopBtn = document.getElementById("startStopBtn");
+      const simulateBtn = document.getElementById("simulateBtn");
+      const clearLogsBtn = document.getElementById("clearLogsBtn");
+      const detectionLogs = document.getElementById("detectionLogs");
+      const notifications = document.getElementById("notifications");
+      const recentPlates = document.getElementById("recentPlates");
+      const notificationToast = document.getElementById("notificationToast");
+      const toastPlateNumber = document.getElementById("toastPlateNumber");
+      const toggleModeBtn = document.getElementById("toggleMode");
+      const fullscreenBtn = document.getElementById("fullscreenBtn");
+
+      // Stats elements
+      const totalBikersEl = document.getElementById("totalBikers");
+      const withHelmetEl = document.getElementById("withHelmet");
+      const withoutHelmetEl = document.getElementById("withoutHelmet");
+      const platesCapturedEl = document.getElementById("platesCaptured");
+
+      // State variables
+      let isDetecting = false;
+      let detectionInterval;
+      let simulateInterval;
+      let stats = {
+        totalBikers: 0,
+        withHelmet: 0,
+        withoutHelmet: 0,
+        platesCaptured: 0,
+      };
+
+      let recentPlatesList = [];
+      let isDarkMode = true;
+
+      // Initialize camera
+      async function initCamera() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: "environment",
+            },
+          });
+          videoFeed.srcObject = stream;
+          videoCanvas.width = videoFeed.videoWidth;
+          videoCanvas.height = videoFeed.videoHeight;
+          noCameraMessage.classList.add("hidden");
+          return true;
+        } catch (err) {
+          console.error("Camera access error:", err);
+          noCameraMessage.classList.remove("hidden");
+          return false;
+        }
+      }
+
+      // Start/stop detection
+      function toggleDetection() {
+        if (isDetecting) {
+          stopDetection();
+          startStopBtn.innerHTML =
+            '<i class="fas fa-play mr-2"></i> Start Detection';
+          startStopBtn.classList.remove("bg-red-600", "hover:bg-red-700");
+          startStopBtn.classList.add("bg-blue-600", "hover:bg-blue-700");
+        } else {
+          startDetection();
+          startStopBtn.innerHTML =
+            '<i class="fas fa-stop mr-2"></i> Stop Detection';
+          startStopBtn.classList.remove("bg-blue-600", "hover:bg-blue-700");
+          startStopBtn.classList.add("bg-red-600", "hover:bg-red-700");
+        }
+        isDetecting = !isDetecting;
+      }
+
+      function startDetection() {
+        // In a real app, this would connect to your backend
+        // For demo, we'll simulate receiving data
+        detectionInterval = setInterval(() => {
+          // Simulate occasional detections
+          if (Math.random() > 0.7) {
+            simulateDetection();
+          }
+        }, 2000);
+      }
+
+      function stopDetection() {
+        clearInterval(detectionInterval);
+        clearInterval(simulateInterval);
+      }
+
+      // Simulate detection data
+      function simulateDetection() {
+        const bikerId = Math.floor(Math.random() * 1000) + 100;
+        const hasHelmet = Math.random() > 0.3; // 70% chance of helmet
+        const platePrefix = ["LEB", "KAB", "DHA", "CTG", "SYL", "RAJ"][
+          Math.floor(Math.random() * 6)
+        ];
+        const plateNumber = `${platePrefix}-${
+          Math.floor(Math.random() * 9000) + 1000
+        }`;
+
+        const detectionData = {
+          biker_id: bikerId,
+          helmet: hasHelmet,
+          number_plate: hasHelmet ? null : plateNumber, // Only capture plate if no helmet
+          timestamp: new Date().toISOString(),
+        };
+
+        processDetection(detectionData);
+      }
+
+      // Process detection data from backend
+      function processDetection(data) {
+        // Update stats
+        stats.totalBikers++;
+        if (data.helmet) {
+          stats.withHelmet++;
+        } else {
+          stats.withoutHelmet++;
+          showNoHelmetAlert(data.number_plate);
+        }
+
+        if (data.number_plate) {
+          stats.platesCaptured++;
+          addRecentPlate(data.number_plate);
+        }
+
+        updateStats();
+
+        // Add to logs
+        addDetectionLog(data);
+
+        // Draw detection box (simulated position)
+        drawDetectionBox(data);
+      }
+
+      // Update stats display
+      function updateStats() {
+        totalBikersEl.textContent = stats.totalBikers;
+        withHelmetEl.textContent = stats.withHelmet;
+        withoutHelmetEl.textContent = stats.withoutHelmet;
+        platesCapturedEl.textContent = stats.platesCaptured;
+      }
+
+      // Draw detection box on video feed
+      function drawDetectionBox(data) {
+        // Clear previous boxes
+        detectionBoxes.innerHTML = "";
+
+        // Simulate random position for demo
+        const width = 100 + Math.random() * 100;
+        const height = 150 + Math.random() * 50;
+        const left = Math.random() * (videoCanvas.width - width);
+        const top = Math.random() * (videoCanvas.height - height);
+
+        const box = document.createElement("div");
+        box.className = `detection-box ${
+          data.helmet ? "helmet-detected" : "no-helmet"
+        }`;
+        box.style.width = `${width}px`;
+        box.style.height = `${height}px`;
+        box.style.left = `${left}px`;
+        box.style.top = `${top}px`;
+
+        box.innerHTML = `
+                <div class="bg-black bg-opacity-70 px-2 py-1 rounded mb-1">
+                    ${data.helmet ? "Helmet OK" : "NO HELMET"}
+                    ${
+                      data.number_plate
+                        ? `<div class="text-xs mt-1">${data.number_plate}</div>`
+                        : ""
+                    }
+                </div>
+            `;
+
+        detectionBoxes.appendChild(box);
+
+        // Remove box after 3 seconds
+        setTimeout(() => {
+          box.remove();
+        }, 3000);
+      }
+
+      // Add detection to log
+      function addDetectionLog(data) {
+        // Remove placeholder if exists
+        if (detectionLogs.querySelector(".text-center")) {
+          detectionLogs.innerHTML = "";
+        }
+
+        const logEntry = document.createElement("div");
+        logEntry.className =
+          "log-entry bg-gray-700 p-3 rounded-lg flex items-start";
+
+        const icon = document.createElement("div");
+        icon.className = `mt-1 mr-3 text-lg ${
+          data.helmet ? "text-green-500" : "text-red-500"
+        }`;
+        icon.innerHTML = data.helmet
+          ? '<i class="fas fa-check-circle"></i>'
+          : '<i class="fas fa-exclamation-circle"></i>';
+
+        const content = document.createElement("div");
+        content.className = "flex-1";
+
+        const header = document.createElement("div");
+        header.className = "flex justify-between items-baseline";
+
+        const title = document.createElement("span");
+        title.className = "font-medium";
+        title.textContent = data.helmet
+          ? "Helmet Detected"
+          : "No Helmet Detected";
+
+        const time = document.createElement("span");
+        time.className = "text-xs text-gray-400";
+        const date = new Date(data.timestamp);
+        time.textContent = date.toLocaleTimeString();
+
+        header.appendChild(title);
+        header.appendChild(time);
+
+        const details = document.createElement("div");
+        details.className = "text-sm mt-1";
+
+        if (data.number_plate) {
+          details.innerHTML = `Biker ID: ${data.biker_id} | Plate: <span class="font-mono bg-gray-900 px-2 py-1 rounded">${data.number_plate}</span>`;
+        } else {
+          details.textContent = `Biker ID: ${data.biker_id}`;
+        }
+
+        content.appendChild(header);
+        content.appendChild(details);
+
+        logEntry.appendChild(icon);
+        logEntry.appendChild(content);
+
+        detectionLogs.insertBefore(logEntry, detectionLogs.firstChild);
+
+        // Limit logs to 50 entries
+        if (detectionLogs.children.length > 50) {
+          detectionLogs.removeChild(detectionLogs.lastChild);
+        }
+      }
+
+      // Show no helmet alert
+      function showNoHelmetAlert(plateNumber) {
+        // Remove placeholder if exists
+        if (notifications.querySelector(".text-center")) {
+          notifications.innerHTML = "";
+        }
+
+        const alert = document.createElement("div");
+        alert.className =
+          "bg-red-900 bg-opacity-50 p-3 rounded-lg border-l-4 border-red-500";
+
+        const header = document.createElement("div");
+        header.className = "flex justify-between items-baseline";
+
+        const title = document.createElement("span");
+        title.className = "font-medium flex items-center";
+        title.innerHTML =
+          '<i class="fas fa-exclamation-triangle mr-2"></i> No Helmet Detected';
+
+        const time = document.createElement("span");
+        time.className = "text-xs text-red-300";
+        const date = new Date();
+        time.textContent = date.toLocaleTimeString();
+
+        header.appendChild(title);
+        header.appendChild(time);
+
+        const details = document.createElement("div");
+        details.className = "text-sm mt-2";
+        details.innerHTML = `Number plate captured: <span class="font-mono bg-black bg-opacity-50 px-2 py-1 rounded">${plateNumber}</span>`;
+
+        alert.appendChild(header);
+        alert.appendChild(details);
+
+        notifications.insertBefore(alert, notifications.firstChild);
+
+        // Limit notifications to 10 entries
+        if (notifications.children.length > 10) {
+          notifications.removeChild(notifications.lastChild);
+        }
+
+        // Show toast notification
+        toastPlateNumber.textContent = `Plate: ${plateNumber}`;
+        notificationToast.classList.remove("hidden");
+
+        setTimeout(() => {
+          notificationToast.classList.add("hidden");
+        }, 5000);
+      }
+
+      // Add recent plate
+      function addRecentPlate(plateNumber) {
+        // Remove placeholder if exists
+        if (recentPlates.querySelector(".text-center")) {
+          recentPlates.innerHTML = "";
+        }
+
+        // Add to list if not already there
+        if (!recentPlatesList.includes(plateNumber)) {
+          recentPlatesList.unshift(plateNumber);
+
+          // Limit to 6 plates
+          if (recentPlatesList.length > 6) {
+            recentPlatesList.pop();
+          }
+
+          // Update display
+          updateRecentPlates();
+        }
+      }
+
+      // Update recent plates display
+      function updateRecentPlates() {
+        recentPlates.innerHTML = "";
+
+        recentPlatesList.forEach((plate) => {
+          const plateEl = document.createElement("div");
+          plateEl.className =
+            "bg-gray-700 rounded-lg p-2 text-center font-mono hover:bg-gray-600 transition cursor-pointer";
+          plateEl.textContent = plate;
+          plateEl.title = `Click to search for ${plate}`;
+
+          plateEl.addEventListener("click", () => {
+            alert(
+              `Would search for plate: ${plate}\n(In a real app, this would open a detailed view)`
+            );
+          });
+
+          recentPlates.appendChild(plateEl);
+        });
+      }
+
+      // Toggle dark/light mode
+      function toggleDarkMode() {
+        isDarkMode = !isDarkMode;
+        document.documentElement.classList.toggle("dark", isDarkMode);
+
+        if (isDarkMode) {
+          toggleModeBtn.innerHTML = '<i class="fas fa-moon"></i>';
+          document.body.classList.remove("bg-gray-100", "text-gray-900");
+          document.body.classList.add("bg-gray-900", "text-gray-100");
+        } else {
+          toggleModeBtn.innerHTML = '<i class="fas fa-sun"></i>';
+          document.body.classList.remove("bg-gray-900", "text-gray-100");
+          document.body.classList.add("bg-gray-100", "text-gray-900");
+        }
+      }
+
+      // Toggle fullscreen
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch((err) => {
+            console.error(
+              `Error attempting to enable fullscreen: ${err.message}`
+            );
+          });
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+        }
+      }
+
+      // CSV Export
+      function exportToCSV() {
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Biker ID,Helmet Status,Number Plate,Timestamp\n";
+
+        // Get all log entries
+        const logEntries = Array.from(
+          detectionLogs.querySelectorAll(".log-entry")
+        );
+
+        // Process each log entry
+        logEntries.reverse().forEach((entry) => {
+          const title = entry.querySelector(".font-medium").textContent;
+          const hasHelmet = title.includes("Helmet Detected");
+          const plateSpan = entry.querySelector(".font-mono");
+          const plate = plateSpan ? plateSpan.textContent : "N/A";
+          const time = entry.querySelector(".text-xs").textContent;
+
+          csvContent += `${Math.floor(Math.random() * 1000)},${
+            hasHelmet ? "Yes" : "No"
+          },"${plate}","${new Date().toLocaleDateString()} ${time}"\n`;
+        });
+
+        // Create download link
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute(
+          "download",
+          `helmet_detection_${new Date().toISOString().slice(0, 10)}.csv`
+        );
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      // Event Listeners
+      startStopBtn.addEventListener("click", toggleDetection);
+      document
+        .getElementById("exportBtn")
+        .addEventListener("click", exportToCSV);
+
+      simulateBtn.addEventListener("click", () => {
+        if (simulateInterval) {
+          clearInterval(simulateInterval);
+          simulateBtn.innerHTML =
+            '<i class="fas fa-random mr-2"></i> Simulate Data';
+          simulateBtn.classList.remove("bg-gray-600", "hover:bg-gray-700");
+          simulateBtn.classList.add("bg-purple-600", "hover:bg-purple-700");
+        } else {
+          simulateInterval = setInterval(simulateDetection, 1000);
+          simulateBtn.innerHTML =
+            '<i class="fas fa-stop mr-2"></i> Stop Simulation';
+          simulateBtn.classList.remove("bg-purple-600", "hover:bg-purple-700");
+          simulateBtn.classList.add("bg-gray-600", "hover:bg-gray-700");
+        }
+      });
+
+      clearLogsBtn.addEventListener("click", () => {
+        detectionLogs.innerHTML = `
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-info-circle text-2xl mb-2"></i>
+                    <p>No detection logs yet. Start detection to see results.</p>
+                </div>
+            `;
+      });
+
+      notificationToast
+        .querySelector("button")
+        .addEventListener("click", () => {
+          notificationToast.classList.add("hidden");
+        });
+
+      toggleModeBtn.addEventListener("click", toggleDarkMode);
+      fullscreenBtn.addEventListener("click", toggleFullscreen);
+
+      // Initialize
+      initCamera().then((cameraAvailable) => {
+        if (!cameraAvailable) {
+          // If no camera, auto-start simulation
+          simulateBtn.click();
+        }
+      });
+
+      // Simulate some initial data for demo
+      setTimeout(() => {
+        if (!isDetecting) {
+          simulateDetection();
+          simulateDetection();
+          simulateDetection();
+        }
+      }, 1000);
+    </script>
+  </body>
+</html>
